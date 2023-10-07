@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Bb(models.Model):
@@ -24,13 +25,30 @@ class Bb(models.Model):
         'Rubric',
         null=True,
         on_delete=models.PROTECT,
-        verbose_name='Рубрика'
+        verbose_name='Рубрика',
+        related_name='entries'
     )
+
+    class Kinds(models.TextChoices):
+        BYU = 'b', 'куплю'
+        SELL = 's', 'продам'
+        EXCHANGE = 'c', 'Обменяю'
+        RENT = 'r'  # последний элементы будет выводиться как RENT
+        __empty__ = 'Выберите тип публикуемого объявления'
+
+    kind = models.CharField(max_length=1,
+                            choices=Kinds.choices,
+                            default=Kinds.SELL)
 
     class Meta:
         verbose_name_plural = 'Объявления'
         verbose_name = 'Объявление'
-        ordering = ['-published']
+        ordering = ['-published', 'title']
+        unique_together = (
+            ('published', 'title'),
+            ('title', 'prise', 'rubric'),
+        ) # создадим запрет на спам одинаковых объявлений
+        get_latest_by = 'published' # метод latest вернет последнюю публикацию
 
 
 class Rubric(models.Model):
@@ -47,3 +65,8 @@ class Rubric(models.Model):
         verbose_name_plural = 'Рубрики'
         verbose_name = 'Рубрика'
         ordering = ['name']
+
+
+class AdvUser(models.Model):
+    is_activated = models.BooleanField(default=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
